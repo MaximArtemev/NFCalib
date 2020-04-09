@@ -45,8 +45,8 @@ class MNIST:
     def __init__(self, logit=False, dequantize=True):
 
         # load dataset
-        f = gzip.open(join(definitions.DATA_DIR, 'mnist/mnist.pkl.gz', 'rb'))
-        trn, val, tst = pickle.load(f)
+        f = gzip.open(join(definitions.DATA_DIR, 'mnist/mnist.pkl.gz'), 'rb')
+        trn, val, tst = pickle.load(f, encoding='latin1')
         f.close()
 
         rng = np.random.RandomState(42)

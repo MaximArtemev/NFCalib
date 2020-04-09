@@ -5,3 +5,4 @@ from utils.data_utils.miniboone import MINIBOONE
 from utils.data_utils.bsds300 import BSDS300
 from utils.data_utils.bsds300 import BSDS300
 from utils.data_utils.cifar10 import CIFAR10
+from utils.data_utils.mnist import MNIST
