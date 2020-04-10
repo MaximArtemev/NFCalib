@@ -1,0 +1,5 @@
+catboost
+scikit-learn
+pytest
+numpy
+torch==1.4.0
