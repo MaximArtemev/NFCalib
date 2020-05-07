@@ -49,7 +49,7 @@ class ConditionalNormalizingFlowModel(nn.Module, BaseConditionalDistribution):
         z = z * torch.exp(log_sigma) + mu
         log_det += log_sigma.sum(dim=1)
         for flow in self.flows[::-1]:
-            if hasattr(flow, 'is_conditional'):
+            if isinstance(flow, BaseConditionalFlow):
                 z, ld = flow.backward(z, condition)
             else:
                 z, ld = flow.backward(z)
