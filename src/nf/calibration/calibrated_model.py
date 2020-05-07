@@ -66,6 +66,6 @@ def rejection_sampling(density: Distribution, major_dist: Distribution, c: float
     samples = samples[is_accept]
     if samples.shape[0] < n_samples:
         new_c = n_rej_samples / samples.shape[0] if samples.shape[0] != 0 else 2 * c
-        new_samples = rejection_sampling(density, major_dist, c, n_samples - samples.shape[0])
+        new_samples = rejection_sampling(density, major_dist, new_c, n_samples - samples.shape[0])
         samples = np.vstack([samples, new_samples])
     return samples[:n_samples]

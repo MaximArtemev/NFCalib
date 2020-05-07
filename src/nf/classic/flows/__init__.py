@@ -1,5 +1,2 @@
-from .base import BaseFlow
-from .utils import FCNN
-
-from .maf import MAF
+from .maf import MAF, ConditionalMAF
 from .rnvp import RealNVP
