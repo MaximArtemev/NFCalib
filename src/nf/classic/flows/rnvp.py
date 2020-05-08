@@ -3,11 +3,11 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 
-from .utils import FCNN
-from .base import BaseFlow
+from src.nf.classic.utils import FCNN
+from src.nf.classic.base import BaseUnconditionalFlow
 
 
-class RealNVP(BaseFlow):
+class RealNVP(BaseUnconditionalFlow):
     def __init__(self, dim: int, hidden_dim: int = 8, base_network: nn.Module = FCNN):
         super().__init__()
         self.dim = dim
