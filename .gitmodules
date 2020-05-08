@@ -1,0 +1,3 @@
+[submodule "src/mrartemev_nflib"]
+	path = src/mrartemev_nflib
+	url = https://github.com/MaximArtemev/mrartemev_nflib

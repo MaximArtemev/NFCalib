@@ -4,8 +4,10 @@
 *.pickle
 *.hdf5
 data/*
-
+!data/get_data.py
+*__pycache__*
 *.idea
+*.state_dict
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

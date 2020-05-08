@@ -3,7 +3,7 @@
 
 ### data
 
-1. Run `cd src/data && python get_data.py`
+1. Run `cd src/data && python3 get_data.py`
 
 ### data_utils 
 
