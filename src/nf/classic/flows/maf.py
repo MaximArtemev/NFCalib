@@ -2,7 +2,6 @@ from typing import Tuple
 
 import torch
 import torch.nn as nn
-import numpy as np
 
 from src.nf.classic.utils import FCNN
 from src.nf.classic.base import BaseUnconditionalFlow, BaseConditionalFlow
@@ -13,13 +12,25 @@ class ConditionalMAF(BaseConditionalFlow):
         super().__init__()
         self.dim = dim
         self.layers = nn.ModuleList()
-        self.initial_param = nn.Parameter(torch.Tensor(2))
+        self.initial_param = nn.Parameter(torch.empty(2), requires_grad=True)
         for i in range(1, dim):
             self.layers += [base_network(i + cond_dim, 2, hidden_dim)]
         self.reset_parameters()
 
+    @staticmethod
+    def init_linear(i):
+        def f(m):
+            if isinstance(m, torch.nn.Linear):
+                torch.nn.init.normal_(m.weight, 0, 1e-2 / i)
+                torch.nn.init.normal_(m.bias, 0, 1e-2 / i)
+
+        return f
+
     def reset_parameters(self):
-        nn.init.uniform_(self.initial_param, -np.sqrt(0.5), np.sqrt(0.5))
+        nn.init.normal_(self.initial_param, 0, 1e-2)
+
+        for i, layer in enumerate(self.layers):
+            layer.apply(self.init_linear(i + 1))
 
     def forward(self, x, condition):
         z = torch.zeros_like(x)

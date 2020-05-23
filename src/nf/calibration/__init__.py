@@ -1,1 +1,1 @@
-from .calibrated_model import CalibratedModel
+from .calibrated_model import CalibratedModel, ConditionalCalibratedModel
