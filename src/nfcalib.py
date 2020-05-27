@@ -21,10 +21,11 @@ parser = argparse.ArgumentParser(description='Easy args NFlib')
 
 parser.add_argument('--data', action="store", type=str)
 parser.add_argument('--model', action="store", type=str)
+parser.add_argument('--index', action='store', type=int, default='1')
 parser.add_argument('--num_layers', action="store", type=int, default=5)
 parser.add_argument('--num_epoch', action="store", type=int, default=20000)
-parser.add_argument('--lr', action="store", type=int, default=0.0001)
-parser.add_argument('--index', action='store', type=int, default='0')
+parser.add_argument('--lr', action="store", type=float, default=0.0001)
+
 args = parser.parse_args()
 
 data_name = args.data # 'POWER'
@@ -33,8 +34,8 @@ model = args.model # 'MAF'
 num_layers = args.num_layers # 5
 num_epoch = args.num_epoch # 20000
 if model == 'SPLINE-AR':
-    num_epoch = num_epoch / 2
-
+    num_epoch = num_epoch // 4
+    num_layers = 2
 model_name = f"{model}_{num_layers}_ind{args.index}"
 
 model_save_dir = f'../models/{data_name}/{model_name}/'
@@ -85,7 +86,7 @@ for _ in range(num_layers):
         flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, base_network=MLP))
         flows.append(InvertiblePermutation(dim=data.n_dims))
     if model == 'RealNVP':
-        flows.append(AffineHalfFlow(dim=data.ndims))
+        flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, base_network=MLP))
         flows.append(InvertiblePermutation(dim=data.n_dims))
 
 lr = args.lr # 0.0001
