@@ -24,7 +24,7 @@ parser.add_argument('--model', action="store", type=str)
 parser.add_argument('--index', action='store', type=int, default='1')
 parser.add_argument('--num_layers', action="store", type=int, default=5)
 parser.add_argument('--num_epoch', action="store", type=int, default=int(3 * 1e6))
-parser.add_argument('--lr', action="store", type=float, default=0.0001)
+parser.add_argument('--lr', action="store", type=float, default=0.0005)
 parser.add_argument('--checkpoint_frequency', action="store", type=int, default=200000)
 args = parser.parse_args()
 
@@ -103,7 +103,7 @@ to_device(model, device)
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 from itertools import repeat
 
-dloader = DataLoader(TensorDataset(X_train_tensor), batch_size=2**12,
+dloader = DataLoader(TensorDataset(X_train_tensor), batch_size=14000,
                      shuffle=True, drop_last=True)
 test_dloader = DataLoader(TensorDataset(X_test_tensor), batch_size=2**8,
                           shuffle=True, drop_last=True)
@@ -180,7 +180,7 @@ from src.nf.classifiers import train_catboost_clf
 from scipy.special import logsumexp
 
 
-def batched_sample(model, n, batch_size=256):
+def batched_sample(model, n, batch_size=2**8):
     generated = []
     for _ in range(n // batch_size):
         generated_batch = model.sample(batch_size)
