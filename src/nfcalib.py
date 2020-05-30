@@ -23,20 +23,18 @@ parser.add_argument('--data', action="store", type=str)
 parser.add_argument('--model', action="store", type=str)
 parser.add_argument('--index', action='store', type=int, default='1')
 parser.add_argument('--num_layers', action="store", type=int, default=5)
-parser.add_argument('--num_epoch', action="store", type=int, default=20000)
+parser.add_argument('--num_epoch', action="store", type=int, default=int(3 * 1e6))
 parser.add_argument('--lr', action="store", type=float, default=0.0001)
-
+parser.add_argument('--checkpoint_frequency', action="store", type=int, default=200000)
 args = parser.parse_args()
 
 data_name = args.data # 'POWER'
-model = args.model # 'MAF'
+model_type = args.model # 'MAF'
 
 num_layers = args.num_layers # 5
-num_epoch = args.num_epoch # 20000
-if model == 'SPLINE-AR':
-    num_epoch = num_epoch // 4
-    num_layers = 2
-model_name = f"{model}_{num_layers}_ind{args.index}"
+num_iters = args.num_epoch # 20000
+
+model_name = f"{model_type}_{num_layers}_ind{args.index}"
 
 model_save_dir = f'../models/{data_name}/{model_name}/'
 os.makedirs(f'{model_save_dir}/checkpoints', exist_ok=True)
@@ -52,12 +50,11 @@ data_mapping = {'BSDS300': data_utils.BSDS300,
                 'POWER': data_utils.POWER,
                 'HEPMASS': data_utils.HEPMASS}
 data = data_mapping[data_name]()
-
 dim = data.n_dims
 
 
-X_train_tensor = torch.from_numpy(data.trn.x)
-X_test_tensor = torch.from_numpy(data.tst.x)
+X_train_tensor = torch.from_numpy(data.trn.x).to(device)
+X_test_tensor = torch.from_numpy(data.tst.x).to(device)
 
 
 from torch.distributions import MultivariateNormal
@@ -73,25 +70,23 @@ from src.mrartemev_nflib.nn import ARMLP, MLP
 
 flows = []
 for _ in range(num_layers):
-    if model == 'MAF':
+    if model_type == 'MAF':
         flows.append(MAF(dim=data.n_dims, base_network=ARMLP))
         flows.append(InvertiblePermutation(dim=data.n_dims))
-    if model == 'SPLINE-AR':
+    if model_type == 'SPLINE-AR':
         flows.append(ActNorm(dim=data.n_dims))
         flows.append(Invertible1x1Conv(dim=data.n_dims))
         flows.append(NSF_AR(dim=data.n_dims, K=8, B=3, hidden_features=32, depth=1, base_network=MLP))
-    if model == 'GLOW':
+    if model_type == 'GLOW':
         flows.append(ActNorm(dim=data.n_dims))
         flows.append(Invertible1x1Conv(dim=data.n_dims))
         flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, base_network=MLP))
         flows.append(InvertiblePermutation(dim=data.n_dims))
-    if model == 'RealNVP':
+    if model_type == 'RealNVP':
         flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, base_network=MLP))
         flows.append(InvertiblePermutation(dim=data.n_dims))
 
 lr = args.lr # 0.0001
-if model == 'SPLINE-AR':
-    lr *= 10
         
 model = NormalizingFlowModel(prior, flows).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -106,59 +101,73 @@ to_device(model, device)
 
 
 from torch.utils.data import Dataset, DataLoader, TensorDataset
+from itertools import repeat
 
 dloader = DataLoader(TensorDataset(X_train_tensor), batch_size=2**12,
-                     shuffle=True, drop_last=True, num_workers=6)
-test_dloader = DataLoader(TensorDataset(X_test_tensor), batch_size=2**12,
-                          shuffle=True, drop_last=True, num_workers=6)
+                     shuffle=True, drop_last=True)
+test_dloader = DataLoader(TensorDataset(X_test_tensor), batch_size=2**8,
+                          shuffle=True, drop_last=True)
+
+def repeater(data_loader):
+    for loader in repeat(data_loader):
+        for data in loader:
+            yield data
+
+dloader = repeater(dloader)
 
 
 from tqdm import tqdm
 
 
-plot_freq = 1500
+checkpoint_frequency = args.checkpoint_frequency
 
-epoch_losses = []
-train_losses = []
+epoch_logpx = []
 
-for epoch in tqdm(range(len(epoch_losses), num_epoch), position=0):
-    for ind, batch in enumerate(dloader):
-        model.train()
-        
-        # fit
-        optimizer.zero_grad()
-        logp_x = model.log_prob(batch[0].to(device))
-        loss = -torch.mean(logp_x)
-        loss.backward()
-        
-        # clip
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-                
-        # step
-        optimizer.step()
 
-        # log
-        train_losses.append(-loss.item())
+for iteration in tqdm(range(len(epoch_logpx), num_iters), position=0):
+    batch = next(dloader)[0]
+    model.train()
 
-    # eval
-    with torch.no_grad():
-        model.eval()
-        logp_x = np.mean([torch.mean(model.log_prob(batch[0].to(device))).item() for batch in test_dloader])
-        epoch_losses.append([np.mean(train_losses), logp_x])
+    # fit
+    optimizer.zero_grad()
+    logp_x = model.log_prob(batch)
+    loss = -torch.mean(logp_x)
+    loss.backward()
+
+    # clip
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+
+    # step
+    optimizer.step()
+
+    # log
+    epoch_logpx.append(-loss.item())
     
-    # show
-    if epoch % plot_freq == 0 and epoch != 0:     
-   	    print(f"{epoch}/{num_epoch} val loss: {np.mean(np.array(epoch_losses)[-plot_freq:, 1])}")
-        
-    # checkpoint
-    if epoch % plot_freq == 0 and epoch != 0:
-        torch.save(model.state_dict(),
-                   os.path.join(model_save_dir, 'checkpoints', f'{epoch}_model.state_dict'))
-        torch.save(optimizer.state_dict(),
-                   os.path.join(model_save_dir, 'checkpoints', f'{epoch}_optimizer.state_dict'))
 
-torch.save(model.state_dict(), os.path.join(model_save_dir, 'model.state_dict'))
-torch.save(optimizer.state_dict(), os.path.join(model_save_dir, 'optimizer.state_dict'))
+        
+    # eval & save
+    if iteration % checkpoint_frequency == 0 and iteration != 0:     
+        with torch.no_grad():
+            model.eval()
+            eval_logp_x = np.mean([torch.mean(model.log_prob(batch[0].to(device))).item() for batch in test_dloader])
+            train_logp_x = np.mean(epoch_logpx[-checkpoint_frequency:])
+            print(f" {iteration}/{num_iters}, val logpx: {eval_logp_x}, train logpx: {train_logp_x}")
+            torch.save({'iteration': iteration,
+                        'model.state_dict()': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'val_logp_x': eval_logp_x,
+                        'train_logp_x': eval_logp_x
+                       }, os.path.join(model_save_dir, 'checkpoints', f'{iteration}.checkpoint'))
+
+eval_logp_x = np.mean([torch.mean(model.log_prob(batch[0].to(device))).item() for batch in test_dloader])
+train_logp_x = np.mean(epoch_logpx[-checkpoint_frequency:])
+
+torch.save({'iteration': iteration,
+            'model.state_dict()': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'val_logp_x': eval_logp_x,
+            'train_logp_x': eval_logp_x
+           }, os.path.join(model_save_dir, 'final_model.checkpoint'))
 
 
 ### Model eval
@@ -171,24 +180,36 @@ from src.nf.classifiers import train_catboost_clf
 from scipy.special import logsumexp
 
 
+def batched_sample(model, n, batch_size=256):
+    generated = []
+    for _ in range(n // batch_size):
+        generated_batch = model.sample(batch_size)
+        generated.append(generated_batch.cpu().detach())
+    if n % batch_size != 0:
+        generated_batch = model.sample(n % batch_size)
+        generated.append(generated_batch.cpu().detach())
+    generated = torch.cat(generated, dim=0)
+    assert n == len(generated)
+    return generated
+
+
 model.eval()
-model.sample_n = lambda x: model.sample(x)
+model.sample_n = lambda n: batched_sample(model, n)
 
 to_device(model, 'cpu')
 
-
 n = min(100000, X_test_tensor.shape[0])
 
-print('Model test LL ', torch.mean(model.log_prob(X_test_tensor[:n])).item())
+print('Model test LL ', torch.mean(model.log_prob(X_test_tensor[:n].cpu())).item())
 
 clf_ds_train = np.row_stack([
-    np.column_stack([X_train_tensor[:n].detach().numpy(), np.ones(n).reshape(-1, 1)]),
-    np.column_stack([model.sample(n).detach().numpy(), np.zeros(n).reshape(-1, 1)])
+    np.column_stack([X_train_tensor[:n].cpu().detach().numpy(), np.ones(n).reshape(-1, 1)]),
+    np.column_stack([model.sample_n(n).cpu().detach().numpy(), np.zeros(n).reshape(-1, 1)])
 ]).astype(np.float32)
 
 clf_ds_test = np.row_stack([
-    np.column_stack([X_test_tensor[:n].detach().numpy(), np.ones(n).reshape(-1, 1)]),
-    np.column_stack([model.sample(n).detach().numpy(), np.zeros(n).reshape(-1, 1)])
+    np.column_stack([X_test_tensor[:n].cpu().detach().numpy(), np.ones(n).reshape(-1, 1)]),
+    np.column_stack([model.sample_n(n).cpu().detach().numpy(), np.zeros(n).reshape(-1, 1)])
 ]).astype(np.float32)
 
 
@@ -203,15 +224,11 @@ clf = CatBoostClassifier(
 
 calibrated_model = CalibratedModel(clf, model, logit=True)
 
-samples = model.sample(n).detach().cpu().numpy()
+samples = model.sample_n(n).cpu().detach().cpu().numpy()
 clf_preds = clf.predict(samples, prediction_type='RawFormulaVal')
 calibration_constant = logsumexp(clf_preds) - np.log(len(clf_preds))
 
-print("Was", -neg_log_likelihood(model, X_test_tensor))
-print("Calibrated", -neg_log_likelihood(calibrated_model, X_test_tensor) - calibration_constant)
-
-
-
-
+print("Was", -neg_log_likelihood(model, X_test_tensor.cpu().detach()))
+print("Calibrated", -neg_log_likelihood(calibrated_model, X_test_tensor.cpu().detach()) - calibration_constant)
 
 
