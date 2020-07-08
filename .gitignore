@@ -1,4 +1,6 @@
+models/
 notebooks/catboost_info/
+src/catboost_info/
 *.ipynb_checkpoints
 *.csv
 *.pyc
