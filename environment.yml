@@ -1,0 +1,19 @@
+name: nfcalib
+channels:
+  - pytorch
+  - defaults
+  - comet_ml
+dependencies:
+  - pip
+  - python=3.6
+  - pytorch=1.5
+  - tqdm
+  - matplotlib
+  - numpy
+  - scikit-learn
+  - jupyter
+  - pip:
+      - comet_ml
+      - catboost
+      - pytest
+prefix: /home/user/anaconda3/envs/nfcalib

@@ -1,16 +1,15 @@
 import subprocess
-import numpy as np
 import time
-import os
 from tqdm import tqdm
+
 
 def main():
     processes = []
     commands = []
     for index in [1, 2, 3]:
-	    for data in ['GAS', 'POWER', 'HEPMASS', 'MINIBOONE', 'BSDS300']:
-	    	for model in ['RealNVP', 'MAF', 'GLOW', 'SPLINE-AR']:
-    			commands.append(f"sbatch --gpus=1 -p normal -c 4 run_nfcalib.sh --data {data} --model {model} --index {index}")
+        for data in ['GAS', 'POWER', 'HEPMASS', 'MINIBOONE', 'BSDS300']:
+            for model in ['RealNVP', 'MAF', 'GLOW', 'SPLINE-AR']:
+                commands.append(f"sbatch --gpus=1 -p normal -c 4 run_nfcalib.sh --data {data} --model {model} --index {index}")
 
     batch_size = 20
     for command in tqdm(commands):
