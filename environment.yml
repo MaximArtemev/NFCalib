@@ -13,6 +13,7 @@ dependencies:
   - scikit-learn
   - jupyter
   - pip:
+      - h5py
       - comet_ml
       - catboost
       - pytest
