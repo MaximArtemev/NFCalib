@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: core
 channels:
   - pytorch
@@ -13,3 +14,25 @@ dependencies:
       - scipy==1.4.1
       - scikit-image==0.17.2
 prefix: /home/user/anaconda3/envs/core
+=======
+name: nfcalib
+channels:
+  - pytorch
+  - defaults
+  - comet_ml
+dependencies:
+  - pip
+  - python=3.6
+  - pytorch=1.5
+  - tqdm
+  - matplotlib
+  - numpy
+  - scikit-learn
+  - jupyter
+  - pip:
+      - h5py
+      - comet_ml
+      - catboost
+      - pytest
+prefix: /home/user/anaconda3/envs/nfcalib
+>>>>>>> 87375662c66f0dda67e88ab7a973531fec7d2b3e

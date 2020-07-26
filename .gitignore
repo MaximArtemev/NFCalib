@@ -1,6 +1,11 @@
 models/
 notebooks/catboost_info/
 src/catboost_info/
+<<<<<<< HEAD
+=======
+cluser/slurm*
+
+>>>>>>> 87375662c66f0dda67e88ab7a973531fec7d2b3e
 *.ipynb_checkpoints
 *.csv
 *.pyc
