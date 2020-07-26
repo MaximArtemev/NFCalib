@@ -17,7 +17,7 @@ from utils import data_utils
 
 from src.mrartemev_nflib.flows import NormalizingFlowModel, InvertiblePermutation, Invertible1x1Conv, ActNorm, NSF_AR
 from src.mrartemev_nflib.flows import MAF, AffineHalfFlow
-from src.mrartemev_nflib.nn import ARMLP, MLP
+from src.mrartemev_nflib.nn import ARMLP, MLP, DenseNet
 
 
 def to_device(model, device, dims):
@@ -64,10 +64,10 @@ def main():
         if args.model == 'GLOW':
             flows.append(ActNorm(dim=data.n_dims))
             flows.append(Invertible1x1Conv(dim=data.n_dims))
-            flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, depth=5, base_network=MLP))
+            flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, depth=5, base_network=DenseNet))
             flows.append(InvertiblePermutation(dim=data.n_dims))
         if args.model == 'RealNVP':
-            flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, depth=5, base_network=MLP))
+            flows.append(AffineHalfFlow(dim=data.n_dims, hidden_features=32, depth=5, base_network=DenseNet))
             flows.append(InvertiblePermutation(dim=data.n_dims))
 
     model = NormalizingFlowModel(prior, flows).to(device)
