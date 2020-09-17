@@ -5,7 +5,7 @@ An official code for the [NFCalib paper](https://www.youtube.com/watch?v=dQw4w9W
 
 ### Data
 
-We are using a number of common tabular datasets as well as well known CIFAR and MNIST.
+We are using a number of common tabular datasets as well as well known MNIST.
 To download it all just run: `cd src/data && python3 get_data.py`
 
 
@@ -21,7 +21,5 @@ Currently there are three ways to run or recreate experiments:
 2. Running a single experiment from a python script: `src/nfcalib.py`
 3. Running a grid of experiments on a cluster: `cluster/run_cluster_jobs.py`
 
+Most of models in the paper was trained via cluster.
 
-### Contacts
-
-In case of any problems ping me: tg@meretemev or mrartemev.me@gmail.com
