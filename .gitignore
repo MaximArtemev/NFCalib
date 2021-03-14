@@ -1,3 +1,7 @@
+models/
+notebooks/catboost_info/
+src/catboost_info/
+cluser/slurm*
 *.ipynb_checkpoints
 *.csv
 *.pyc
